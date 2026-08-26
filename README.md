@@ -30,7 +30,3 @@ API fundacional da MecâniQA desenvolvida com Spring Boot e armazenamento em mem
 ## Execução
 
 O projeto foi validado com `./gradlew.bat test` usando Java 21.
-
-## Apresentação
-
-Consulte o [Roteiro de Apresentação](ROTEIRO-APRESENTACAO.md) para entender o fluxo do código, preparar uma demonstração e revisar respostas para perguntas frequentes.
