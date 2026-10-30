@@ -2,12 +2,21 @@ package br.com.mecaniQA.api.controller;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import br.com.mecaniQA.api.dto.CriarOrdemServicoRequest;
+import br.com.mecaniQA.api.dto.OrdemServicoResponse;
 import br.com.mecaniQA.api.exception.RecursoNaoEncontradoException;
+import br.com.mecaniQA.api.model.StatusOrdemServico;
 import br.com.mecaniQA.api.service.OrdemDeServicoService;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -27,5 +36,47 @@ class OrdemServicoControllerTests {
         .when(service)
         .excluir(99999L);
     mvc.perform(delete("/api/ordens-servico/99999")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void criarOrdemRetornaRelacionamentosEStatusInicial() throws Exception {
+    LocalDateTime agora = LocalDateTime.now();
+    when(service.criar(any(CriarOrdemServicoRequest.class)))
+        .thenReturn(
+            new OrdemServicoResponse(
+                22L,
+                "Ana",
+                "ABC-1234",
+                "Reparo",
+                StatusOrdemServico.ABERTO,
+                List.of(),
+                List.of(),
+                agora,
+                agora));
+
+    mvc.perform(
+            post("/api/ordens-servico")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"cliente":"Ana","veiculo":"ABC-1234","descricao":"Reparo",
+                     "codigosPecas":[],"codigosServicos":[]}
+                    """))
+        .andExpect(status().isCreated())
+        .andExpect(header().string("Location", "/api/ordens-servico/22"))
+        .andExpect(jsonPath("$.status").value("ABERTO"))
+        .andExpect(jsonPath("$.pecas").isArray())
+        .andExpect(jsonPath("$.servicos").isArray());
+  }
+
+  @Test
+  void dadosInvalidosRetornam400SemChamarService() throws Exception {
+    mvc.perform(
+            post("/api/ordens-servico")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"cliente\":\"\",\"veiculo\":\"\",\"descricao\":\"\"}"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.campos.cliente").exists());
+    verifyNoInteractions(service);
   }
 }

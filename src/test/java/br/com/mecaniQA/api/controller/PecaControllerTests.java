@@ -3,11 +3,17 @@ package br.com.mecaniQA.api.controller;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import br.com.mecaniQA.api.dto.CriarPecaRequest;
+import br.com.mecaniQA.api.dto.PecaResponse;
 import br.com.mecaniQA.api.exception.RecursoNaoEncontradoException;
+import br.com.mecaniQA.api.model.CategoriaPeca;
 import br.com.mecaniQA.api.service.PecaService;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -40,5 +46,36 @@ class PecaControllerTests {
         .andExpect(jsonPath("$.message").value("Corpo da requisição inválido"))
         .andExpect(jsonPath("$.campos.codigoBarras").exists());
     verifyNoInteractions(service);
+  }
+
+  @Test
+  void cadastroValidoRetorna201ComLocalizacao() throws Exception {
+    LocalDateTime agora = LocalDateTime.now();
+    when(service.criar(any(CriarPecaRequest.class)))
+        .thenReturn(
+            new PecaResponse(
+                17L,
+                "789123",
+                "Bosch",
+                3,
+                new BigDecimal("20.00"),
+                new BigDecimal("35.00"),
+                agora,
+                agora,
+                null,
+                null,
+                CategoriaPeca.FREIOS));
+
+    mvc.perform(
+            post("/api/pecas")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"codigoBarras":"789123","fornecedorMarca":"Bosch","quantidadeEstoque":3,
+                     "precoCusto":20,"precoVenda":35,"categoria":"FREIOS"}
+                    """))
+        .andExpect(status().isCreated())
+        .andExpect(header().string("Location", "/api/pecas/17"))
+        .andExpect(jsonPath("$.codigoBarras").value("789123"));
   }
 }
