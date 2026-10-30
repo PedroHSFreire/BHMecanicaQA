@@ -4,7 +4,6 @@ import br.com.mecaniQA.api.dto.AtualizarServicoRequest;
 import br.com.mecaniQA.api.dto.CriarServicoRequest;
 import br.com.mecaniQA.api.dto.ServicoResponse;
 import br.com.mecaniQA.api.service.ServicoService;
-import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -28,9 +27,10 @@ public class ServicoController {
   }
 
   @PostMapping
-  public ResponseEntity<ServicoResponse> criar(@Valid @RequestBody CriarServicoRequest request) {
+  public ResponseEntity<ServicoResponse> criar(@RequestBody CriarServicoRequest request) {
     return ControllerSupport.executar(
         () -> {
+          ControllerSupport.validar(request);
           ServicoResponse criado = service.criar(request);
           return ResponseEntity.created(URI.create("/api/servicos/" + criado.getCodigo()))
               .body(criado);
@@ -51,9 +51,13 @@ public class ServicoController {
 
   @PutMapping("/{codigo}")
   public ResponseEntity<ServicoResponse> atualizar(
-      @PathVariable Long codigo, @Valid @RequestBody AtualizarServicoRequest request) {
+      @PathVariable Long codigo, @RequestBody AtualizarServicoRequest request) {
     return ControllerSupport.executar(
-        () -> ResponseEntity.ok(service.atualizar(codigo, request)), "/api/servicos/" + codigo);
+        () -> {
+          ControllerSupport.validar(request);
+          return ResponseEntity.ok(service.atualizar(codigo, request));
+        },
+        "/api/servicos/" + codigo);
   }
 
   @DeleteMapping("/{codigo}")

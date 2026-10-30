@@ -4,7 +4,6 @@ import br.com.mecaniQA.api.dto.AtualizarStatusOrdemServicoRequest;
 import br.com.mecaniQA.api.dto.CriarOrdemServicoRequest;
 import br.com.mecaniQA.api.dto.OrdemServicoResponse;
 import br.com.mecaniQA.api.service.OrdemDeServicoService;
-import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -28,10 +27,10 @@ public class OrdemServicoController {
   }
 
   @PostMapping
-  public ResponseEntity<OrdemServicoResponse> criar(
-      @Valid @RequestBody CriarOrdemServicoRequest request) {
+  public ResponseEntity<OrdemServicoResponse> criar(@RequestBody CriarOrdemServicoRequest request) {
     return ControllerSupport.executar(
         () -> {
+          ControllerSupport.validar(request);
           OrdemServicoResponse criada = service.criar(request);
           return ResponseEntity.created(URI.create("/api/ordens-servico/" + criada.getCodigo()))
               .body(criada);
@@ -53,9 +52,12 @@ public class OrdemServicoController {
 
   @PatchMapping("/{codigo}/status")
   public ResponseEntity<OrdemServicoResponse> atualizarStatus(
-      @PathVariable Long codigo, @Valid @RequestBody AtualizarStatusOrdemServicoRequest request) {
+      @PathVariable Long codigo, @RequestBody AtualizarStatusOrdemServicoRequest request) {
     return ControllerSupport.executar(
-        () -> ResponseEntity.ok(service.atualizarStatus(codigo, request)),
+        () -> {
+          ControllerSupport.validar(request);
+          return ResponseEntity.ok(service.atualizarStatus(codigo, request));
+        },
         "/api/ordens-servico/" + codigo);
   }
 

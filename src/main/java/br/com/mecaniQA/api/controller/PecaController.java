@@ -7,7 +7,6 @@ import br.com.mecaniQA.api.exception.ApiError;
 import br.com.mecaniQA.api.exception.ErroDePersistenciaException;
 import br.com.mecaniQA.api.exception.RecursoNaoEncontradoException;
 import br.com.mecaniQA.api.service.PecaService;
-import jakarta.validation.Valid;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -35,9 +34,10 @@ public class PecaController {
   }
 
   @PostMapping
-  public ResponseEntity<PecaResponse> criar(@Valid @RequestBody CriarPecaRequest request) {
+  public ResponseEntity<PecaResponse> criar(@RequestBody CriarPecaRequest request) {
     return executar(
         () -> {
+          ControllerSupport.validar(request);
           PecaResponse pecaCriada = service.criar(request);
           return ResponseEntity.created(URI.create("/api/pecas/" + pecaCriada.getCodigo()))
               .body(pecaCriada);
@@ -57,9 +57,13 @@ public class PecaController {
 
   @PutMapping("/{codigo}")
   public ResponseEntity<PecaResponse> atualizar(
-      @PathVariable Long codigo, @Valid @RequestBody AtualizarPecaRequest request) {
+      @PathVariable Long codigo, @RequestBody AtualizarPecaRequest request) {
     return executar(
-        () -> ResponseEntity.ok(service.atualizar(codigo, request)), "/api/pecas/" + codigo);
+        () -> {
+          ControllerSupport.validar(request);
+          return ResponseEntity.ok(service.atualizar(codigo, request));
+        },
+        "/api/pecas/" + codigo);
   }
 
   @DeleteMapping("/{codigo}")
@@ -76,6 +80,16 @@ public class PecaController {
   private <T> ResponseEntity<T> executar(Supplier<ResponseEntity<T>> operacao, String caminho) {
     try {
       return operacao.get();
+    } catch (br.com.mecaniQA.api.exception.DadosInvalidosException exception) {
+      ApiError erro =
+          new ApiError(
+              LocalDateTime.now(),
+              400,
+              "Bad Request",
+              exception.getMessage(),
+              caminho,
+              exception.getCampos());
+      return ResponseEntity.badRequest().body((T) erro);
     } catch (RecursoNaoEncontradoException exception) {
       ApiError erro =
           new ApiError(

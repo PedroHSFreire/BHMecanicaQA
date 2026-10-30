@@ -5,7 +5,6 @@ import br.com.mecaniQA.api.dto.CriarPedidoPecasRequest;
 import br.com.mecaniQA.api.dto.ItemPedidoRequest;
 import br.com.mecaniQA.api.dto.PedidoPecasResponse;
 import br.com.mecaniQA.api.service.PedidoPecasService;
-import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
@@ -29,10 +28,10 @@ public class PedidoPecasController {
   }
 
   @PostMapping
-  public ResponseEntity<PedidoPecasResponse> criar(
-      @Valid @RequestBody CriarPedidoPecasRequest request) {
+  public ResponseEntity<PedidoPecasResponse> criar(@RequestBody CriarPedidoPecasRequest request) {
     return ControllerSupport.executar(
         () -> {
+          ControllerSupport.validar(request);
           PedidoPecasResponse criado = service.criar(request);
           return ResponseEntity.created(URI.create("/api/pedidos-pecas/" + criado.getCodigo()))
               .body(criado);
@@ -54,17 +53,23 @@ public class PedidoPecasController {
 
   @PostMapping("/{codigo}/itens")
   public ResponseEntity<PedidoPecasResponse> adicionarItem(
-      @PathVariable Long codigo, @Valid @RequestBody ItemPedidoRequest request) {
+      @PathVariable Long codigo, @RequestBody ItemPedidoRequest request) {
     return ControllerSupport.executar(
-        () -> ResponseEntity.ok(service.adicionarItem(codigo, request)),
+        () -> {
+          ControllerSupport.validar(request);
+          return ResponseEntity.ok(service.adicionarItem(codigo, request));
+        },
         "/api/pedidos-pecas/" + codigo + "/itens");
   }
 
   @PatchMapping("/{codigo}/status")
   public ResponseEntity<PedidoPecasResponse> atualizarStatus(
-      @PathVariable Long codigo, @Valid @RequestBody AtualizarStatusPedidoRequest request) {
+      @PathVariable Long codigo, @RequestBody AtualizarStatusPedidoRequest request) {
     return ControllerSupport.executar(
-        () -> ResponseEntity.ok(service.atualizarStatus(codigo, request)),
+        () -> {
+          ControllerSupport.validar(request);
+          return ResponseEntity.ok(service.atualizarStatus(codigo, request));
+        },
         "/api/pedidos-pecas/" + codigo + "/status");
   }
 
