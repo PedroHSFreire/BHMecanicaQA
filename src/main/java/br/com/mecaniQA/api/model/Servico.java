@@ -2,83 +2,86 @@ package br.com.mecaniQA.api.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 public class Servico {
-	private Long codigo;
-	private String nomeServico;
-	private Integer tempoEstimadoDuracaoMinutos;
-	private BigDecimal custoTabelado;
-	private LocalDateTime dataCriacao;
-	private LocalDateTime dataUltimaAtualizacao;
 
-	public Servico() {
-	}
+  private Long codigo;
+  private String nome;
+  private Integer duracaoEstimadaMinutos;
+  private BigDecimal custoTabelado;
+  private LocalDateTime dataCriacao;
+  private LocalDateTime dataUltimaAtualizacao;
 
-	public Servico(Long codigo, String nomeServico, Integer tempoEstimadoDuracaoMinutos, BigDecimal custoTabelado,
-			LocalDateTime dataCriacao, LocalDateTime dataUltimaAtualizacao) {
-		this.codigo = codigo;
-		this.nomeServico = nomeServico;
-		this.tempoEstimadoDuracaoMinutos = tempoEstimadoDuracaoMinutos;
-		this.custoTabelado = custoTabelado;
-		this.dataCriacao = dataCriacao;
-		this.dataUltimaAtualizacao = dataUltimaAtualizacao;
-	}
+  public Servico() {}
 
-	public Servico(Servico outro) {
-		this(
-				outro.codigo,
-				outro.nomeServico,
-				outro.tempoEstimadoDuracaoMinutos,
-				outro.custoTabelado,
-				outro.dataCriacao,
-				outro.dataUltimaAtualizacao);
-	}
+  public Servico(String nome, Integer duracaoEstimadaMinutos, BigDecimal custoTabelado) {
+    this.nome = nome;
+    this.duracaoEstimadaMinutos = duracaoEstimadaMinutos;
+    this.custoTabelado = custoTabelado;
+  }
 
-	public Long getCodigo() {
-		return codigo;
-	}
+  public Long getCodigo() {
+    return codigo;
+  }
 
-	public void setCodigo(Long codigo) {
-		this.codigo = codigo;
-	}
+  public void setCodigo(Long codigo) {
+    this.codigo = codigo;
+  }
 
-	public String getNomeServico() {
-		return nomeServico;
-	}
+  public String getNome() {
+    return nome;
+  }
 
-	public void setNomeServico(String nomeServico) {
-		this.nomeServico = nomeServico;
-	}
+  public void setNome(String nome) {
+    this.nome = nome;
+  }
 
-	public Integer getTempoEstimadoDuracaoMinutos() {
-		return tempoEstimadoDuracaoMinutos;
-	}
+  public Integer getDuracaoEstimadaMinutos() {
+    return duracaoEstimadaMinutos;
+  }
 
-	public void setTempoEstimadoDuracaoMinutos(Integer tempoEstimadoDuracaoMinutos) {
-		this.tempoEstimadoDuracaoMinutos = tempoEstimadoDuracaoMinutos;
-	}
+  public void setDuracaoEstimadaMinutos(Integer duracaoEstimadaMinutos) {
+    this.duracaoEstimadaMinutos = duracaoEstimadaMinutos;
+  }
 
-	public BigDecimal getCustoTabelado() {
-		return custoTabelado;
-	}
+  public BigDecimal getCustoTabelado() {
+    return custoTabelado;
+  }
 
-	public void setCustoTabelado(BigDecimal custoTabelado) {
-		this.custoTabelado = custoTabelado;
-	}
+  public void setCustoTabelado(BigDecimal custoTabelado) {
+    this.custoTabelado = custoTabelado;
+  }
 
-	public LocalDateTime getDataCriacao() {
-		return dataCriacao;
-	}
+  public LocalDateTime getDataCriacao() {
+    return dataCriacao;
+  }
 
-	public void setDataCriacao(LocalDateTime dataCriacao) {
-		this.dataCriacao = dataCriacao;
-	}
+  public void setDataCriacao(LocalDateTime dataCriacao) {
+    this.dataCriacao = dataCriacao;
+  }
 
-	public LocalDateTime getDataUltimaAtualizacao() {
-		return dataUltimaAtualizacao;
-	}
+  public LocalDateTime getDataUltimaAtualizacao() {
+    return dataUltimaAtualizacao;
+  }
 
-	public void setDataUltimaAtualizacao(LocalDateTime dataUltimaAtualizacao) {
-		this.dataUltimaAtualizacao = dataUltimaAtualizacao;
-	}
+  public void setDataUltimaAtualizacao(LocalDateTime dataUltimaAtualizacao) {
+    this.dataUltimaAtualizacao = dataUltimaAtualizacao;
+  }
+
+  @Override
+  public boolean equals(Object objeto) {
+    if (this == objeto) {
+      return true;
+    }
+    if (!(objeto instanceof Servico outro)) {
+      return false;
+    }
+    return codigo != null && Objects.equals(codigo, outro.codigo);
+  }
+
+  @Override
+  public int hashCode() {
+    return codigo == null ? 0 : Objects.hash(codigo);
+  }
 }

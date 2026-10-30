@@ -1,0 +1,71 @@
+package br.com.mecaniQA.api.controller;
+
+import br.com.mecaniQA.api.dto.AtualizarStatusOrdemServicoRequest;
+import br.com.mecaniQA.api.dto.CriarOrdemServicoRequest;
+import br.com.mecaniQA.api.dto.OrdemServicoResponse;
+import br.com.mecaniQA.api.service.OrdemDeServicoService;
+import jakarta.validation.Valid;
+import java.net.URI;
+import java.util.List;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/ordens-servico")
+public class OrdemServicoController {
+
+  private final OrdemDeServicoService service;
+
+  public OrdemServicoController(OrdemDeServicoService service) {
+    this.service = service;
+  }
+
+  @PostMapping
+  public ResponseEntity<OrdemServicoResponse> criar(
+      @Valid @RequestBody CriarOrdemServicoRequest request) {
+    return ControllerSupport.executar(
+        () -> {
+          OrdemServicoResponse criada = service.criar(request);
+          return ResponseEntity.created(URI.create("/api/ordens-servico/" + criada.getCodigo()))
+              .body(criada);
+        },
+        "/api/ordens-servico");
+  }
+
+  @GetMapping
+  public ResponseEntity<List<OrdemServicoResponse>> listar() {
+    return ControllerSupport.executar(
+        () -> ResponseEntity.ok(service.listar()), "/api/ordens-servico");
+  }
+
+  @GetMapping("/{codigo}")
+  public ResponseEntity<OrdemServicoResponse> buscar(@PathVariable Long codigo) {
+    return ControllerSupport.executar(
+        () -> ResponseEntity.ok(service.buscar(codigo)), "/api/ordens-servico/" + codigo);
+  }
+
+  @PatchMapping("/{codigo}/status")
+  public ResponseEntity<OrdemServicoResponse> atualizarStatus(
+      @PathVariable Long codigo, @Valid @RequestBody AtualizarStatusOrdemServicoRequest request) {
+    return ControllerSupport.executar(
+        () -> ResponseEntity.ok(service.atualizarStatus(codigo, request)),
+        "/api/ordens-servico/" + codigo);
+  }
+
+  @DeleteMapping("/{codigo}")
+  public ResponseEntity<Void> excluir(@PathVariable Long codigo) {
+    return ControllerSupport.executar(
+        () -> {
+          service.excluir(codigo);
+          return ResponseEntity.noContent().build();
+        },
+        "/api/ordens-servico/" + codigo);
+  }
+}

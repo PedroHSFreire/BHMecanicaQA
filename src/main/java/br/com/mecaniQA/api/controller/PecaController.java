@@ -1,11 +1,18 @@
 package br.com.mecaniQA.api.controller;
 
-import br.com.mecaniQA.api.dto.PecaRequest;
-import br.com.mecaniQA.api.model.Peca;
-import br.com.mecaniQA.api.repository.PecaRepository;
-import java.math.BigDecimal;
+import br.com.mecaniQA.api.dto.AtualizarPecaRequest;
+import br.com.mecaniQA.api.dto.CriarPecaRequest;
+import br.com.mecaniQA.api.dto.PecaResponse;
+import br.com.mecaniQA.api.exception.ApiError;
+import br.com.mecaniQA.api.exception.ErroDePersistenciaException;
+import br.com.mecaniQA.api.exception.RecursoNaoEncontradoException;
+import br.com.mecaniQA.api.service.PecaService;
+import jakarta.validation.Valid;
+import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,94 +27,70 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/pecas")
 public class PecaController {
-	private final PecaRepository repository = PecaRepository.getInstance();
 
-	@PostMapping
-	public ResponseEntity<?> criar(@RequestBody PecaRequest request) {
-		String erro = validar(request);
-		if (erro != null) {
-			return ResponseEntity.badRequest().body(Map.of("erro", erro));
-		}
+  private final PecaService service;
 
-		Peca criada = repository.create(toModel(request));
-		return ResponseEntity.status(HttpStatus.CREATED).body(criada);
-	}
+  public PecaController(PecaService service) {
+    this.service = service;
+  }
 
-	@GetMapping
-	public ResponseEntity<List<Peca>> listar() {
-		return ResponseEntity.ok(repository.findAll());
-	}
+  @PostMapping
+  public ResponseEntity<PecaResponse> criar(@Valid @RequestBody CriarPecaRequest request) {
+    return executar(
+        () -> {
+          PecaResponse pecaCriada = service.criar(request);
+          return ResponseEntity.created(URI.create("/api/pecas/" + pecaCriada.getCodigo()))
+              .body(pecaCriada);
+        },
+        "/api/pecas");
+  }
 
-	@GetMapping("/{codigo}")
-	public ResponseEntity<?> buscarPorCodigo(@PathVariable Long codigo) {
-		return repository.findByCodigo(codigo)
-				.<ResponseEntity<?>>map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("erro", "Peça não encontrada.")));
-	}
+  @GetMapping
+  public ResponseEntity<List<PecaResponse>> listar() {
+    return executar(() -> ResponseEntity.ok(service.listar()), "/api/pecas");
+  }
 
-	@PutMapping("/{codigo}")
-	public ResponseEntity<?> atualizar(@PathVariable Long codigo, @RequestBody PecaRequest request) {
-		String erro = validar(request);
-		if (erro != null) {
-			return ResponseEntity.badRequest().body(Map.of("erro", erro));
-		}
+  @GetMapping("/{codigo}")
+  public ResponseEntity<PecaResponse> buscar(@PathVariable Long codigo) {
+    return executar(() -> ResponseEntity.ok(service.buscar(codigo)), "/api/pecas/" + codigo);
+  }
 
-		return repository.update(codigo, toModel(request))
-				.<ResponseEntity<?>>map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("erro", "Peça não encontrada.")));
-	}
+  @PutMapping("/{codigo}")
+  public ResponseEntity<PecaResponse> atualizar(
+      @PathVariable Long codigo, @Valid @RequestBody AtualizarPecaRequest request) {
+    return executar(
+        () -> ResponseEntity.ok(service.atualizar(codigo, request)), "/api/pecas/" + codigo);
+  }
 
-	@DeleteMapping("/{codigo}")
-	public ResponseEntity<?> remover(@PathVariable Long codigo) {
-		boolean removida = repository.delete(codigo);
-		if (!removida) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("erro", "Peça não encontrada."));
-		}
-		return ResponseEntity.noContent().build();
-	}
+  @DeleteMapping("/{codigo}")
+  public ResponseEntity<Void> excluir(@PathVariable Long codigo) {
+    return executar(
+        () -> {
+          service.excluir(codigo);
+          return ResponseEntity.noContent().build();
+        },
+        "/api/pecas/" + codigo);
+  }
 
-	private Peca toModel(PecaRequest request) {
-		Peca peca = new Peca();
-		peca.setCodigoBarras(request.codigoBarras());
-		peca.setFornecedorMarca(request.fornecedorMarca());
-		peca.setQuantidadeEstoque(request.quantidadeEstoque());
-		peca.setPrecoCusto(request.precoCusto());
-		peca.setPrecoVenda(request.precoVenda());
-		peca.setTamanho(request.tamanho());
-		peca.setCor(request.cor());
-		peca.setCategoria(request.categoria());
-		return peca;
-	}
-
-	private String validar(PecaRequest request) {
-		if (request == null) {
-			return "O corpo da requisição da peça é obrigatório.";
-		}
-		if (estaEmBranco(request.codigoBarras())) {
-			return "codigoBarras é obrigatório.";
-		}
-		if (estaEmBranco(request.fornecedorMarca())) {
-			return "fornecedorMarca é obrigatório.";
-		}
-		if (request.quantidadeEstoque() == null || request.quantidadeEstoque() < 0) {
-			return "quantidadeEstoque deve ser informado e não pode ser negativo.";
-		}
-		if (request.precoCusto() == null || request.precoCusto().compareTo(BigDecimal.ZERO) < 0) {
-			return "precoCusto deve ser informado e não pode ser negativo.";
-		}
-		if (request.precoVenda() == null || request.precoVenda().compareTo(BigDecimal.ZERO) < 0) {
-			return "precoVenda deve ser informado e não pode ser negativo.";
-		}
-		if (request.categoria() == null) {
-			return "categoria é obrigatória.";
-		}
-		return null;
-	}
-
-	private boolean estaEmBranco(String valor) {
-		return valor == null || valor.isBlank();
-	}
+  @SuppressWarnings("unchecked")
+  private <T> ResponseEntity<T> executar(Supplier<ResponseEntity<T>> operacao, String caminho) {
+    try {
+      return operacao.get();
+    } catch (RecursoNaoEncontradoException exception) {
+      ApiError erro =
+          new ApiError(
+              LocalDateTime.now(), 404, "Not Found", exception.getMessage(), caminho, Map.of());
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).body((T) erro);
+    } catch (ErroDePersistenciaException exception) {
+      ApiError erro =
+          new ApiError(
+              LocalDateTime.now(),
+              500,
+              "Internal Server Error",
+              "Falha ao acessar o banco de dados",
+              caminho,
+              Map.of());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body((T) erro);
+    }
+  }
 }

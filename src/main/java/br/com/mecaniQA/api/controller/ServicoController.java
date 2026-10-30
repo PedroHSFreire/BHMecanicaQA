@@ -1,12 +1,12 @@
 package br.com.mecaniQA.api.controller;
 
-import br.com.mecaniQA.api.dto.ServicoRequest;
-import br.com.mecaniQA.api.model.Servico;
-import br.com.mecaniQA.api.repository.ServicoRepository;
-import java.math.BigDecimal;
+import br.com.mecaniQA.api.dto.AtualizarServicoRequest;
+import br.com.mecaniQA.api.dto.CriarServicoRequest;
+import br.com.mecaniQA.api.dto.ServicoResponse;
+import br.com.mecaniQA.api.service.ServicoService;
+import jakarta.validation.Valid;
+import java.net.URI;
 import java.util.List;
-import java.util.Map;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -20,80 +20,49 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/servicos")
 public class ServicoController {
-	private final ServicoRepository repository = ServicoRepository.getInstance();
 
-	@PostMapping
-	public ResponseEntity<?> criar(@RequestBody ServicoRequest request) {
-		String erro = validar(request);
-		if (erro != null) {
-			return ResponseEntity.badRequest().body(Map.of("erro", erro));
-		}
+  private final ServicoService service;
 
-		Servico criado = repository.create(toModel(request));
-		return ResponseEntity.status(HttpStatus.CREATED).body(criado);
-	}
+  public ServicoController(ServicoService service) {
+    this.service = service;
+  }
 
-	@GetMapping
-	public ResponseEntity<List<Servico>> listar() {
-		return ResponseEntity.ok(repository.findAll());
-	}
+  @PostMapping
+  public ResponseEntity<ServicoResponse> criar(@Valid @RequestBody CriarServicoRequest request) {
+    return ControllerSupport.executar(
+        () -> {
+          ServicoResponse criado = service.criar(request);
+          return ResponseEntity.created(URI.create("/api/servicos/" + criado.getCodigo()))
+              .body(criado);
+        },
+        "/api/servicos");
+  }
 
-	@GetMapping("/{codigo}")
-	public ResponseEntity<?> buscarPorCodigo(@PathVariable Long codigo) {
-		return repository.findByCodigo(codigo)
-				.<ResponseEntity<?>>map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("erro", "Serviço não encontrado.")));
-	}
+  @GetMapping
+  public ResponseEntity<List<ServicoResponse>> listar() {
+    return ControllerSupport.executar(() -> ResponseEntity.ok(service.listar()), "/api/servicos");
+  }
 
-	@PutMapping("/{codigo}")
-	public ResponseEntity<?> atualizar(@PathVariable Long codigo, @RequestBody ServicoRequest request) {
-		String erro = validar(request);
-		if (erro != null) {
-			return ResponseEntity.badRequest().body(Map.of("erro", erro));
-		}
+  @GetMapping("/{codigo}")
+  public ResponseEntity<ServicoResponse> buscar(@PathVariable Long codigo) {
+    return ControllerSupport.executar(
+        () -> ResponseEntity.ok(service.buscar(codigo)), "/api/servicos/" + codigo);
+  }
 
-		return repository.update(codigo, toModel(request))
-				.<ResponseEntity<?>>map(ResponseEntity::ok)
-				.orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("erro", "Serviço não encontrado.")));
-	}
+  @PutMapping("/{codigo}")
+  public ResponseEntity<ServicoResponse> atualizar(
+      @PathVariable Long codigo, @Valid @RequestBody AtualizarServicoRequest request) {
+    return ControllerSupport.executar(
+        () -> ResponseEntity.ok(service.atualizar(codigo, request)), "/api/servicos/" + codigo);
+  }
 
-	@DeleteMapping("/{codigo}")
-	public ResponseEntity<?> remover(@PathVariable Long codigo) {
-		boolean removido = repository.delete(codigo);
-		if (!removido) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("erro", "Serviço não encontrado."));
-		}
-		return ResponseEntity.noContent().build();
-	}
-
-	private Servico toModel(ServicoRequest request) {
-		Servico servico = new Servico();
-		servico.setNomeServico(request.nomeServico());
-		servico.setTempoEstimadoDuracaoMinutos(request.tempoEstimadoDuracaoMinutos());
-		servico.setCustoTabelado(request.custoTabelado());
-		return servico;
-	}
-
-	private String validar(ServicoRequest request) {
-		if (request == null) {
-			return "O corpo da requisição do serviço é obrigatório.";
-		}
-		if (estaEmBranco(request.nomeServico())) {
-			return "nomeServico é obrigatório.";
-		}
-		if (request.tempoEstimadoDuracaoMinutos() == null || request.tempoEstimadoDuracaoMinutos() <= 0) {
-			return "tempoEstimadoDuracaoMinutos deve ser informado e maior que zero.";
-		}
-		if (request.custoTabelado() == null || request.custoTabelado().compareTo(BigDecimal.ZERO) < 0) {
-			return "custoTabelado deve ser informado e não pode ser negativo.";
-		}
-		return null;
-	}
-
-	private boolean estaEmBranco(String valor) {
-		return valor == null || valor.isBlank();
-	}
+  @DeleteMapping("/{codigo}")
+  public ResponseEntity<Void> excluir(@PathVariable Long codigo) {
+    return ControllerSupport.executar(
+        () -> {
+          service.excluir(codigo);
+          return ResponseEntity.noContent().build();
+        },
+        "/api/servicos/" + codigo);
+  }
 }
